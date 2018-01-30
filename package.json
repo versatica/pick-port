@@ -1,0 +1,30 @@
+{
+  "name": "pick-port",
+  "version": "0.0.1",
+  "description": "Get a free TCP or UDP port for the given IP address",
+  "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmillan/pick-port.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jmillan/pick-port/issues"
+  },
+  "main": "index.js",
+  "keywords": [
+    "network",
+    "port",
+    "tcp",
+    "udp",
+    "pick",
+    "allocate",
+    "free"
+  ],
+  "devDependencies": {
+    "eslint": "~4.15.0"
+  },
+  "scripts": {
+    "lint": "eslint -c .eslintrc.js . index.js"
+  }
+}
