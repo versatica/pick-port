@@ -5,9 +5,9 @@ Get an available TCP or UDP port for the given IP address.
 ## Usage
 
 ```js
-const freePort = require('free-port');
+const pickPort = require('pick-port');
 
-freePort()
+pickPort()
 	.then(port =>
 	{
 		console.log(port);
@@ -18,7 +18,7 @@ freePort()
 Optionally, provide the TCP/IP protocol family type, IP address and/or port:
 
 ```js
-freePort({ type: 'tcp', ip: '10.10.10.1', port: 8000 })
+pickPort({ type: 'tcp', ip: '10.10.10.1', port: 8000 })
 	.then(port =>
 	{
 		console.log(port);
@@ -29,7 +29,7 @@ freePort({ type: 'tcp', ip: '10.10.10.1', port: 8000 })
 
 ## API
 
-### freePort([options])
+### pickPort([options])
 
 Returns a `Promise` for a port number.
 
