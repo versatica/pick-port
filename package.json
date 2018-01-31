@@ -1,6 +1,6 @@
 {
   "name": "pick-port",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Get a free TCP or UDP port for the given IP address",
   "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
   "license": "MIT",
