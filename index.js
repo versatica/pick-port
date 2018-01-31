@@ -48,28 +48,28 @@ const getUdpPort = (options) => new Promise((resolve, reject) =>
 
 module.exports = (options = {}) =>
 {
-	const _options = Object.assign({}, defaultOptions, options);
+	options = Object.assign({}, defaultOptions, options);
 
 	// Sanity checks.
-	const type = _options.type.toLowerCase();
+	const type = options.type.toLowerCase();
 
 	if (type !== 'udp' && type !== 'tcp')
 		return Promise.reject(new Error('Invalid parameter: "type"'));
 
-	const family = net.isIP(_options.ip);
+	const family = net.isIP(options.ip);
 
 	if (family !== 4 && family !== 6)
 		return Promise.reject(new Error('Invalid parameter: "ip"'));
 
-	if (typeof _options.port !== 'number')
+	if (typeof options.port !== 'number')
 		return Promise.reject(new Error('Invalid parameter: "port"'));
 
-	_options.type = type;
-	_options.family = family;
+	options.type = type;
+	options.family = family;
 
 	// Get the port.
-	if (_options.type === 'udp')
-		return getUdpPort(_options);
+	if (options.type === 'udp')
+		return getUdpPort(options);
 	else
-		return getTcpPort(_options);
+		return getTcpPort(options);
 };
