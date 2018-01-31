@@ -48,7 +48,7 @@ const getUdpPort = (options) => new Promise((resolve, reject) =>
 
 module.exports = (options = {}) =>
 {
-	const _options = { ...defaultOptions, ...options };
+	const _options = Object.assign({}, defaultOptions, options);
 
 	// Sanity checks.
 	const type = _options.type.toLowerCase();
