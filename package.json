@@ -25,6 +25,6 @@
     "eslint": "~4.15.0"
   },
   "scripts": {
-    "lint": "eslint -c .eslintrc.js . index.js"
+    "lint": "eslint -c .eslintrc.js index.js ./lib/*.js"
   }
 }

@@ -49,6 +49,24 @@ Type: `number`
 
 Specific port to be checked. Default value is 0, which means that any free port can be taken.
 
+##### range
+
+Type: `object`
+
+The port range for which a free port is requested. If specified, only ports in the given range are considered. It is unset by default.
+
+###### range.min
+
+Type: `number`
+
+The minimum port number in the range.
+
+###### range.max
+
+Type: `number`
+
+The maximum port number in the range.
+
 ##### ip
 
 Type: `string`

@@ -1,49 +1,90 @@
 'use strict';
 
 const net = require('net');
-const dgram = require('dgram');
+const tcp = require('./lib/tcp');
+const udp = require('./lib/udp');
 
 const defaultOptions =
 {
-	type : 'udp',
-	ip   : '127.0.0.1',
-	port : 0
+	type  : 'udp',
+	ip    : '127.0.0.1',
+	port  : 0,
+	range : {}
 };
 
-const getTcpPort = (options) => new Promise((resolve, reject) =>
+const getPort = (options) => new Promise((resolve, reject) =>
 {
-	const server = net.createServer();
+	const handler = options.type === 'udp'? udp : tcp;
 
-	server.unref();
-	server.on('error', reject);
-
-	server.listen(options.port, options.ip, () =>
+	// Specific port specified or no range indicated.
+	if (options.port !== 0 || !options.range)
 	{
-		const port = server.address().port;
+		handler(options)
+			.then((port) =>
+			{
+				resolve(port);
 
-		server.close(() =>
-		{
-			resolve(port);
-		});
-	});
-});
+				return;
 
-const getUdpPort = (options) => new Promise((resolve, reject) =>
-{
-	const server = dgram.createSocket(options.family === 4 ? 'udp4' : 'udp6');
+			})
+			.catch((error) =>
+			{
+				reject(error);
 
-	server.unref();
-	server.on('error', reject);
+				return;
 
-	server.bind(options.port, options.ip, () =>
+			});
+	}
+
+	// Range specified. Get a free port on the given range.
+	else
 	{
-		const port = server.address().port;
+		const range = options.range;
 
-		server.close(() =>
+		delete options.range;
+
+		let retries = 0;
+
+		options.port = range.min;
+
+		const pickPort = () =>
 		{
-			resolve(port);
-		});
-	});
+			handler(options)
+				.then((port) =>
+				{
+					resolve(port);
+
+					return;
+
+				})
+				.catch((error) =>
+				{
+					if (error.code === 'EADDRINUSE')
+					{
+						if (++retries <= range.max - range.min)
+						{
+							options.port++;
+							pickPort();
+						}
+						else
+						{
+							reject(new Error('All ports in the given range are in use'));
+
+							return;
+						}
+					}
+
+					else
+					{
+						reject(error);
+
+						return;
+					}
+				});
+		};
+
+		pickPort();
+	}
 });
 
 module.exports = (options = {}) =>
@@ -64,12 +105,31 @@ module.exports = (options = {}) =>
 	if (typeof options.port !== 'number')
 		return Promise.reject(new Error('Invalid parameter: "port"'));
 
+	const range = options.range;
+
+	// Both range edges defined.
+	if (range.hasOwnProperty('min') && range.hasOwnProperty('max'))
+	{
+		if (typeof range.min !== 'number' || typeof range.max !== 'number')
+			return Promise.reject(new Error('Invalid parameter: "range"'));
+
+		if (range.min > range.max)
+			return Promise.reject(new Error('Invalid parameter: "range"'));
+	}
+	// Single range edge defined.
+	else if (range.hasOwnProperty('min') || range.hasOwnProperty('max'))
+	{
+		return Promise.reject(new Error('Invalid parameter: "range"'));
+	}
+	// No range defined.
+	else
+	{
+		delete options.range;
+	}
+
 	options.type = type;
 	options.family = family;
 
 	// Get the port.
-	if (options.type === 'udp')
-		return getUdpPort(options);
-	else
-		return getTcpPort(options);
+	return getPort(options);
 };
