@@ -11,7 +11,6 @@ pickPort()
 	.then(port =>
 	{
 		console.log(port);
-		//=> 34323
 	});
 ```
 
@@ -22,7 +21,10 @@ pickPort({ type: 'tcp', ip: '10.10.10.1', port: 8000 })
 	.then(port =>
 	{
 		console.log(port);
-		//=> 8000 if the given port if free to use, otherwise the corresponding exception is thrown
+	})
+	.catch((error) =>
+	{
+		console.log(error);
 	});
 ```
 
@@ -31,45 +33,59 @@ pickPort({ type: 'tcp', ip: '10.10.10.1', port: 8000 })
 
 ### pickPort([options])
 
-Returns a `Promise` for a port number.
+Returns a `Promise`.
+
+Resolves with the free port number on success or throws if error or no free ports in the given range are available.
 
 #### options
 
 Type: `Object`
 
-##### type
+##### options.type
 
-Type: `string`
+TCP/IP family type. Possible values for this parameter are 'udp' and 'tcp'.
 
-TCP/IP family type. Options for this parameter are 'udp' and 'tcp'. Default value is 'udp'.
+* Type: `String`.
+* Default value: 'udp'.
 
-##### port
+##### options.port
 
-Type: `number`
+Specific port to be checked or 0 to specify that any free port can be taken.
 
-Specific port to be checked. Default value is 0, which means that any free port can be taken.
+* Type: `Number`.
+* Default value: 0.
 
-##### range
+##### options.range
 
-Type: `object`
+The port range for which a free port is requested. If specified, only ports in the given range are considered.
 
-The port range for which a free port is requested. If specified, only ports in the given range are considered. It is unset by default.
+* Type: `Object`.
+* Default value: undefined.
 
-###### range.min
-
-Type: `number`
+###### options.range.min
 
 The minimum port number in the range.
 
-###### range.max
+* Type: `Number`
 
-Type: `number`
+###### options.range.max
 
 The maximum port number in the range.
 
-##### ip
+* Type: `Number`.
 
-Type: `string`
+##### options.ip
 
 The IP address for which a free port is requested. IPv4 and IPv6 addressing is supported.
-Default value is '127.0.0.1'.
+
+* Type: `String`.
+* Default value: '127.0.0.1'.
+
+##### options.reserveTimeout
+
+Timeout in seconds, during which a returned free port will be internally reserved and prevented of being returned on a future call before the timeout has elapsed.
+
+This provides the application using this library with the required time to bind the free port before it is given again on a future call.
+
+* Type: `Number`.
+* Default value: 5.

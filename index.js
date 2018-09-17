@@ -4,12 +4,27 @@ const net = require('net');
 const tcp = require('./lib/tcp');
 const udp = require('./lib/udp');
 
+// Store picked ports for the specified 'reserveTimeout' time.
+const reserved =
+{
+	'udp' : new Set(),
+	'tcp' : new Set()
+};
+
 const defaultOptions =
 {
-	type  : 'udp',
-	ip    : '127.0.0.1',
-	port  : 0,
-	range : {}
+	type           : 'udp',
+	ip             : '127.0.0.1',
+	port           : 0,
+	range          : {},
+	reserveTimeout : 5
+};
+
+const reserve = function(type, port, timeout)
+{
+	reserved[type].add(port);
+
+	setTimeout(() => reserved[type].delete(port), timeout * 1000);
 };
 
 const getPort = (options) => new Promise((resolve, reject) =>
@@ -22,18 +37,16 @@ const getPort = (options) => new Promise((resolve, reject) =>
 		handler(options)
 			.then((port) =>
 			{
+				reserve(options.type, port, options.reserveTimeout);
+
 				resolve(port);
-
-				return;
-
 			})
 			.catch((error) =>
 			{
 				reject(error);
-
-				return;
-
 			});
+
+		return;
 	}
 
 	// Range specified. Get a free port on the given range.
@@ -45,41 +58,43 @@ const getPort = (options) => new Promise((resolve, reject) =>
 
 		let retries = 0;
 
-		options.port = range.min;
+		// Take a random port in the range.
+		options.port = Math.floor(
+			Math.random() * ((range.max + 1) - range.min)) + range.min;
 
 		const pickPort = () =>
 		{
+			options.port++;
+
+			// Keep the port within the range.
+			if (options.port > range.max)
+				options.port = range.min;
+
+			// Try picking a free port for as many times as the number of
+			// ports within the range.
+			if (retries++ > (range.max - range.min))
+				return reject(new Error('All ports in the given range are in use'));
+
+			// The port is reserved, try with another one.
+			if (reserved[options.type].has(options.port))
+				return pickPort();
+
+			// The port is not reserved try to bind it.
 			handler(options)
 				.then((port) =>
 				{
+					// Free. reserve it.
+					reserve(options.type, port, options.reserveTimeout);
+
 					resolve(port);
-
-					return;
-
 				})
 				.catch((error) =>
 				{
+					// In use, try with another one.
 					if (error.code === 'EADDRINUSE')
-					{
-						if (++retries <= range.max - range.min)
-						{
-							options.port++;
-							pickPort();
-						}
-						else
-						{
-							reject(new Error('All ports in the given range are in use'));
-
-							return;
-						}
-					}
-
+						pickPort();
 					else
-					{
 						reject(error);
-
-						return;
-					}
 				});
 		};
 
@@ -104,6 +119,9 @@ module.exports = (options = {}) =>
 
 	if (typeof options.port !== 'number')
 		return Promise.reject(new Error('Invalid parameter: "port"'));
+
+	if (typeof options.reserveTimeout !== 'number')
+		return Promise.reject(new Error('Invalid parameter: "reserveTimeout"'));
 
 	const range = options.range;
 
