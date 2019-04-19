@@ -2,6 +2,7 @@ module.exports =
 {
 	env:
 	{
+		browser: false,
 		es6: true,
 		node: true
 	},
@@ -12,12 +13,11 @@ module.exports =
 	settings: {},
 	parserOptions:
 	{
-		ecmaVersion: 6,
+		ecmaVersion: 2018,
 		sourceType: 'module',
 		ecmaFeatures:
 		{
-			impliedStrict: true,
-			experimentalObjectRestSpread: true
+			impliedStrict: true
 		}
 	},
 	rules:
@@ -64,14 +64,14 @@ module.exports =
 			beforeBlockComment: true,
 			beforeLineComment: false
 		}],
-		'max-len': [ 2, 86,
+		'max-len': [ 2, 90,
 		{
 			tabWidth: 2,
-			comments: 90,
-			ignoreUrls: false,
-			ignoreStrings: false,
-			ignoreTemplateLiterals: false,
-			ignoreRegExpLiterals: false
+			comments: 100,
+			ignoreUrls: true,
+			ignoreStrings: true,
+			ignoreTemplateLiterals: true,
+			ignoreRegExpLiterals: true
 		}],
 		'newline-after-var': 2,
 		'newline-before-return': 2,
@@ -98,7 +98,6 @@ module.exports =
 		'no-extra-bind': 2,
 		'no-extra-boolean-cast': 2,
 		'no-extra-label': 2,
-		'no-extra-parens': [ 2, 'all', { nestedBinaryExpressions: false } ],
 		'no-extra-semi': 2,
 		'no-fallthrough': 2,
 		'no-func-assign': 2,
@@ -114,7 +113,7 @@ module.exports =
 		'no-mixed-spaces-and-tabs': 2,
 		'no-multi-spaces': 2,
 		'no-multi-str': 2,
-		'no-multiple-empty-lines': [ 2, { max: 1, maxEOF: 0, maxBOF: 0 } ],
+		'no-multiple-empty-lines': [ 1, { max: 1, maxEOF: 0, maxBOF: 0 } ],
 		'no-native-reassign': 2,
 		'no-negated-in-lhs': 2,
 		'no-new': 2,
@@ -159,10 +158,15 @@ module.exports =
 		'semi': [ 2, 'always' ],
 		'semi-spacing': 2,
 		'space-before-blocks': 2,
-		'space-before-function-paren': [ 2, 'never' ],
+		'space-before-function-paren': [ 2,
+		{
+			anonymous  : 'never',
+			named      : 'never',
+			asyncArrow : 'always'
+		}],
 		'space-in-parens': [ 2, 'never' ],
 		'spaced-comment': [ 2, 'always' ],
-		'strict': 0,
+		'strict': 2,
 		'valid-typeof': 2,
 		'yoda': 2
 	}
