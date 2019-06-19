@@ -1,153 +1,109 @@
-'use strict';
-
 const net = require('net');
+const debug = require('debug')('pick-port');
+const warn = require('debug')('pick-port:WARN');
 const tcp = require('./lib/tcp');
 const udp = require('./lib/udp');
 
-// Store picked ports for the specified 'reserveTimeout' time.
-const reserved =
-{
-	'udp' : new Set(),
-	'tcp' : new Set()
-};
+/* eslint-disable no-console */
+debug.log = console.debug.bind(console);
+warn.log = console.warn.bind(console);
+/* eslint-enable no-console */
 
-const defaultOptions =
-{
-	type           : 'udp',
-	ip             : '127.0.0.1',
-	port           : 0,
-	range          : {},
-	reserveTimeout : 5
-};
+// Store picked ports for the specified reserveTimeout time.
+// This Set stores strings with the form "type:ip:port".
+const reserved = new Set();
 
-const reserve = function(type, port, timeout)
-{
-	reserved[type].add(port);
-
-	setTimeout(() => reserved[type].delete(port), timeout * 1000);
-};
-
-const getPort = (options) => new Promise((resolve, reject) =>
-{
-	const handler = options.type === 'udp'? udp : tcp;
-
-	// Specific port specified or no range indicated.
-	if (options.port !== 0 || !options.range)
+module.exports = async function(
 	{
-		handler(options)
-			.then((port) =>
-			{
-				reserve(options.type, port, options.reserveTimeout);
-
-				resolve(port);
-			})
-			.catch((error) =>
-			{
-				reject(error);
-			});
-
-		return;
-	}
-
-	// Range specified. Get a free port on the given range.
-	else
-	{
-		const range = options.range;
-
-		delete options.range;
-
-		let retries = 0;
-
-		// Take a random port in the range.
-		options.port = Math.floor(
-			Math.random() * ((range.max + 1) - range.min)) + range.min;
-
-		const pickPort = () =>
-		{
-			options.port++;
-
-			// Keep the port within the range.
-			if (options.port > range.max)
-				options.port = range.min;
-
-			// Try picking a free port for as many times as the number of
-			// ports within the range.
-			if (retries++ > (range.max - range.min))
-				return reject(new Error('All ports in the given range are in use'));
-
-			// The port is reserved, try with another one.
-			if (reserved[options.type].has(options.port))
-				return pickPort();
-
-			// The port is not reserved try to bind it.
-			handler(options)
-				.then((port) =>
-				{
-					// Free. reserve it.
-					reserve(options.type, port, options.reserveTimeout);
-
-					resolve(port);
-				})
-				.catch((error) =>
-				{
-					// In use, try with another one.
-					if (error.code === 'EADDRINUSE')
-						pickPort();
-					else
-						reject(error);
-				});
-		};
-
-		pickPort();
-	}
-});
-
-module.exports = (options = {}) =>
+		type = 'udp',
+		ip = '0.0.0.0',
+		minPort = 10000,
+		maxPort = 20000,
+		reserveTimeout = 5
+	} = {}
+)
 {
-	options = Object.assign({}, defaultOptions, options);
+	debug(
+		'called with [type:%s, ip:%s, minPort:%d, maxPort:%d, reserveTimeout:%d]',
+		type, ip, minPort, maxPort, reserveTimeout);
 
 	// Sanity checks.
-	const type = options.type.toLowerCase();
+	type = type.toLowerCase();
+
+	const family = net.isIP(ip);
 
 	if (type !== 'udp' && type !== 'tcp')
-		return Promise.reject(new Error('Invalid parameter: "type"'));
-
-	const family = net.isIP(options.ip);
+		throw new TypeError('invalid type parameter');
 
 	if (family !== 4 && family !== 6)
-		return Promise.reject(new Error('Invalid parameter: "ip"'));
+		throw new TypeError('invalid ip parameter');
 
-	if (typeof options.port !== 'number')
-		return Promise.reject(new Error('Invalid parameter: "port"'));
+	if (typeof minPort !== 'number' || typeof maxPort !== 'number' || minPort > maxPort)
+		throw new TypeError('invalid minPort/maxPort parameter');
 
-	if (typeof options.reserveTimeout !== 'number')
-		return Promise.reject(new Error('Invalid parameter: "reserveTimeout"'));
+	if (typeof reserveTimeout !== 'number')
+		throw new TypeError('invalid reserveTimeout parameter');
 
-	const range = options.range;
+	const handle = type === 'udp'? udp : tcp;
 
-	// Both range edges defined.
-	if (range.hasOwnProperty('min') && range.hasOwnProperty('max'))
+	// Take a random port in the range.
+	let port = Math.floor(Math.random() * ((maxPort + 1) - minPort)) + minPort;
+	let retries = maxPort - minPort + 1;
+
+	while (--retries >= 0)
 	{
-		if (typeof range.min !== 'number' || typeof range.max !== 'number')
-			return Promise.reject(new Error('Invalid parameter: "range"'));
+		// Keep the port within the range.
+		if (++port > maxPort)
+			port = minPort;
 
-		if (range.min > range.max)
-			return Promise.reject(new Error('Invalid parameter: "range"'));
-	}
-	// Single range edge defined.
-	else if (range.hasOwnProperty('min') || range.hasOwnProperty('max'))
-	{
-		return Promise.reject(new Error('Invalid parameter: "range"'));
-	}
-	// No range defined.
-	else
-	{
-		delete options.range;
+		// If current port is reserved, try next one.
+		if (isReserved({ type, ip, port }))
+			continue;
+
+		try
+		{
+			await handle({ ip, port, family });
+
+			reserve({ type, ip, port, reserveTimeout });
+
+			debug('got an available port [type:%s, ip:%s, port:%d]', type, ip, port);
+
+			return port;
+		}
+		catch (error)
+		{
+			if (error.code === 'EADDRINUSE')
+			{
+				debug('port in use [type:%s, ip:%s, port:%d]', type, ip, port);
+
+				continue;
+			}
+			else
+			{
+				warn(
+					'could not get any available port [type:%s, ip:%s, port:%d]: %s',
+					type, ip, port, error.toString());
+
+				throw error;
+			}
+		}
 	}
 
-	options.type = type;
-	options.family = family;
-
-	// Get the port.
-	return getPort(options);
+	throw new Error('no port available');
 };
+
+function reserve({ type, ip, port, reserveTimeout })
+{
+	const value = `${type}:${ip}:${port}`;
+
+	reserved.add(value);
+
+	setTimeout(() => reserved.delete(value), reserveTimeout * 1000);
+}
+
+function isReserved({ type, ip, port })
+{
+	const value = `${type}:${ip}:${port}`;
+
+	return reserved.has(value);
+}

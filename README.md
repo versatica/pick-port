@@ -1,91 +1,56 @@
+# pick-port
 
 Get an available TCP or UDP port for the given IP address.
+
+```bash
+$ npm install pick-port
+```
 
 
 ## Usage
 
 ```js
 const pickPort = require('pick-port');
-
-pickPort()
-	.then(port =>
-	{
-		console.log(port);
-	});
 ```
 
-Optionally, provide the TCP/IP protocol family type, IP address and/or port:
+Get a random UDP port in IP 0.0.0.0:
 
 ```js
-pickPort({ type: 'tcp', ip: '10.10.10.1', port: 8000 })
-	.then(port =>
-	{
-		console.log(port);
-	})
-	.catch((error) =>
-	{
-		console.log(error);
-	});
+const port = await pickPort();
+```
+
+Get a TCP port in a specific IP and port range:
+
+```js
+const port = await =
+	pickPort({ type: 'tcp', ip: '192.168.10.111', minPort: 8000, maxPort: 9000 })
 ```
 
 
 ## API
 
-### pickPort([options])
+### await pickPort({ type, ip, minPort, maxPort, reserveTimeout })
 
-Returns a `Promise`.
+Async function. Resolves with an available port or rejects with an error otherwise.
 
-Resolves with the free port number on success or throws if error or no free ports in the given range are available.
+| Option        | Type   | Description   | Required | Default |
+| ------------- | ------ | ------------- |   :---:  | ------- |
+| `type`        | String | 'udp' or 'tcp'. | No      | 'udp'   |
+| `ip`          | String | IPv4 or IPv6 address for which a free port is requested. | No      | '0.0.0.0' |
+| `minPort`     | Number | Minimum port.   | No      | 10000   |
+| `maxPort`     | Number | Maximum port.   | No      | 20000   |
+| `reserveTimeout` | Number | Timeout in seconds during which a returned port will be internally reserved and prevented of being returned on a future call before the timeout has elapsed. | No | 5 |
 
-#### options
+* `@returns` {Number} A free port.
 
-Type: `Object`
+The `reserveTimeout` option provides the application with the required time to bind the free port before it is given again on a future call to this library.
 
-##### options.type
 
-TCP/IP family type. Possible values for this parameter are 'udp' and 'tcp'.
+## Author
 
-* Type: `String`.
-* Default value: 'udp'.
+* José Luis Millán [[github](https://github.com/jmillan/)]
 
-##### options.port
 
-Specific port to be checked or 0 to specify that any free port can be taken.
+## License
 
-* Type: `Number`.
-* Default value: 0.
-
-##### options.range
-
-The port range for which a free port is requested. If specified, only ports in the given range are considered.
-
-* Type: `Object`.
-* Default value: undefined.
-
-###### options.range.min
-
-The minimum port number in the range.
-
-* Type: `Number`
-
-###### options.range.max
-
-The maximum port number in the range.
-
-* Type: `Number`.
-
-##### options.ip
-
-The IP address for which a free port is requested. IPv4 and IPv6 addressing is supported.
-
-* Type: `String`.
-* Default value: '127.0.0.1'.
-
-##### options.reserveTimeout
-
-Timeout in seconds, during which a returned free port will be internally reserved and prevented of being returned on a future call before the timeout has elapsed.
-
-This provides the application using this library with the required time to bind the free port before it is given again on a future call.
-
-* Type: `Number`.
-* Default value: 5.
+[ISC](./LICENSE)

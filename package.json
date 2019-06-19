@@ -1,6 +1,6 @@
 {
   "name": "pick-port",
-  "version": "0.1.0",
+  "version": "1.0.0-dev",
   "description": "Get a free TCP or UDP port for the given IP address",
   "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
   "license": "MIT",
@@ -22,9 +22,12 @@
     "free"
   ],
   "devDependencies": {
-    "eslint": "~4.15.0"
+    "eslint": "^5.16.0"
   },
   "scripts": {
-    "lint": "eslint -c .eslintrc.js index.js ./lib/*.js"
+    "lint": "eslint -c .eslintrc.js index.js lib"
+  },
+  "dependencies": {
+    "debug": "^4.1.1"
   }
 }
