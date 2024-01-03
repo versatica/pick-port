@@ -10,7 +10,7 @@ $ npm install pick-port
 ## Usage
 
 ```js
-const pickPort = require('pick-port');
+import { pickPort } from 'pick-port';
 ```
 
 Get a random UDP port in IP 0.0.0.0:
@@ -22,16 +22,17 @@ const port = await pickPort();
 Get a TCP port in a specific IP and port range:
 
 ```js
-const port = await =
-	pickPort({ type: 'tcp', ip: '192.168.10.111', minPort: 8000, maxPort: 9000 })
+const port = await pickPort(
+	{ type: 'tcp', ip: '192.168.10.111', minPort: 8000, maxPort: 9000 }
+);
 ```
 
 
 ## API
 
-### await pickPort({ type, ip, minPort, maxPort, reserveTimeout })
+### async pickPort({ type, ip, minPort, maxPort, reserveTimeout }): Promise<number>
 
-Async function. Resolves with an available port or rejects with an error otherwise.
+Resolves with an available port or rejects with an error otherwise.
 
 | Option        | Type   | Description   | Required | Default |
 | ------------- | ------ | ------------- |   :---:  | ------- |

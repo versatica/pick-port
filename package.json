@@ -1,6 +1,6 @@
 {
   "name": "pick-port",
-  "version": "1.0.1",
+  "version": "2.0.0-pre",
   "description": "Get a free TCP or UDP port for the given IP address",
   "author": "José Luis Millán <jmillan@aliax.net> (https://github.com/jmillan)",
   "license": "MIT",
@@ -11,7 +11,15 @@
   "bugs": {
     "url": "https://github.com/jmillan/pick-port/issues"
   },
-  "main": "index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "npm-scripts.mjs",
+    "lib"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
   "keywords": [
     "network",
     "port",
@@ -21,14 +29,23 @@
     "allocate",
     "free"
   ],
-  "devDependencies": {
-    "eslint": "^7.17.0"
-  },
   "scripts": {
-    "lint": "node npm-scripts.js lint",
-    "release": "node npm-scripts.js release"
+    "prepare": "node npm-scripts.mjs prepare",
+    "typescript:build": "node npm-scripts.mjs typescript:build",
+    "typescript:watch": "node npm-scripts.mjs typescript:watch",
+    "lint": "node npm-scripts.mjs lint",
+    "release:check": "node npm-scripts.mjs release:check",
+    "release": "node npm-scripts.mjs release"
   },
   "dependencies": {
-    "debug": "^4.3.1"
+    "debug": "^4.3.4"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
   }
 }
