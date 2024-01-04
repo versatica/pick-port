@@ -125,7 +125,7 @@ function reserve(
 
 function isReserved(
 	{ type, ip, port }:
-	{	type: Type; ip: string; port: number }
+	{  type: Type; ip: string; port: number }
 ): boolean
 {
 	const hash = `${type}:${ip}:${port}`;
