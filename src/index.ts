@@ -11,25 +11,21 @@ type Type = 'udp' | 'tcp';
 // This Set stores strings/hashes with the form "type:ip:port".
 const reserved: Set<string> = new Set();
 
-export async function pickPort(
-	{
-		type = 'udp',
-		ip = '0.0.0.0',
-		minPort = 10000,
-		maxPort = 20000,
-		reserveTimeout = 5
-	}:
-	{
-		type?: Type;
-		ip?: string;
-		minPort?: number;
-		maxPort?: number;
-		reserveTimeout?: number;
-	}	= {}
-): Promise<number>
-{
+export async function pickPort({
+	type,
+	ip = '0.0.0.0',
+	minPort = 10000,
+	maxPort = 20000,
+	reserveTimeout = 5,
+}: {
+	type: Type;
+	ip?: string;
+	minPort?: number;
+	maxPort?: number;
+	reserveTimeout?: number;
+}): Promise<number> {
 	logger.debug(
-		`pickPort() [type:${type}, ip:${ip}, minPort:${minPort}, maxPort:${maxPort}, reserveTimeout:${reserveTimeout}]`
+		`pickPort() [type:${type}, ip:${ip}, minPort:${minPort}, maxPort:${maxPort}, reserveTimeout:${reserveTimeout}]`,
 	);
 
 	// Sanity checks.
@@ -38,69 +34,57 @@ export async function pickPort(
 
 	const family = net.isIP(ip);
 
-	if (type !== 'udp' && type !== 'tcp')
-	{
+	if (type !== 'udp' && type !== 'tcp') {
 		throw new TypeError('invalid type parameter');
-	}
-	else if (family !== 4 && family !== 6)
-	{
+	} else if (family !== 4 && family !== 6) {
 		throw new TypeError('invalid ip parameter');
-	}
-	else if (typeof minPort !== 'number' || typeof maxPort !== 'number' || minPort > maxPort)
-	{
+	} else if (
+		typeof minPort !== 'number' ||
+		typeof maxPort !== 'number' ||
+		minPort > maxPort
+	) {
 		throw new TypeError('invalid minPort/maxPort parameter');
-	}
-	else if (typeof reserveTimeout !== 'number')
-	{
+	} else if (typeof reserveTimeout !== 'number') {
 		throw new TypeError('invalid reserveTimeout parameter');
 	}
 
 	const handle = type === 'udp' ? reserveUdp : reserveTcp;
 
 	// Take a random port in the range.
-	let port = Math.floor(Math.random() * ((maxPort + 1) - minPort)) + minPort;
+	let port = Math.floor(Math.random() * (maxPort + 1 - minPort)) + minPort;
 	let retries = maxPort - minPort + 1;
 
-	while (--retries >= 0)
-	{
+	while (--retries >= 0) {
 		// Keep the port within the range.
-		if (++port > maxPort)
-		{
+		if (++port > maxPort) {
 			port = minPort;
 		}
 
 		// If current port is reserved, try next one.
-		if (isReserved({ type, ip, port }))
-		{
+		if (isReserved({ type, ip, port })) {
 			continue;
 		}
 
-		try
-		{
+		try {
 			await handle({ ip, port, family });
 
 			reserve({ type, ip, port, reserveTimeout });
 
 			logger.debug(
-				`pickPort() got an available port [type:${type}, ip:${ip}, port:${port}]`
+				`pickPort() got an available port [type:${type}, ip:${ip}, port:${port}]`,
 			);
 
 			return port;
-		}
-		catch (error)
-		{
-			if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE')
-			{
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
 				logger.debug(
-					`pickPort() | port in use [type:${type}, ip:${ip}, port:${port}]`
+					`pickPort() | port in use [type:${type}, ip:${ip}, port:${port}]`,
 				);
 
 				continue;
-			}
-			else
-			{
+			} else {
 				logger.warn(
-					`pickPort() | could not get any available port [type:${type}, ip:${ip}, port:${port}]: ${error}`
+					`pickPort() | could not get any available port [type:${type}, ip:${ip}, port:${port}]: ${error}`,
 				);
 
 				throw error;
@@ -111,11 +95,17 @@ export async function pickPort(
 	throw new Error('no port available');
 }
 
-function reserve(
-	{ type, ip, port, reserveTimeout }:
-	{ type: Type; ip: string; port: number; reserveTimeout: number }
-): void
-{
+function reserve({
+	type,
+	ip,
+	port,
+	reserveTimeout,
+}: {
+	type: Type;
+	ip: string;
+	port: number;
+	reserveTimeout: number;
+}): void {
 	const hash = `${type}:${ip}:${port}`;
 
 	reserved.add(hash);
@@ -123,11 +113,15 @@ function reserve(
 	setTimeout(() => reserved.delete(hash), reserveTimeout * 1000);
 }
 
-function isReserved(
-	{ type, ip, port }:
-	{  type: Type; ip: string; port: number }
-): boolean
-{
+function isReserved({
+	type,
+	ip,
+	port,
+}: {
+	type: Type;
+	ip: string;
+	port: number;
+}): boolean {
 	const hash = `${type}:${ip}:${port}`;
 
 	return reserved.has(hash);

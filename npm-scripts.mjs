@@ -9,10 +9,8 @@ const task = process.argv.slice(2).join(' ');
 
 run();
 
-async function run()
-{
-	switch (task)
-	{
+async function run() {
+	switch (task) {
 		// As per NPM documentation (https://docs.npmjs.com/cli/v9/using-npm/scripts)
 		// `prepare` script:
 		//
@@ -23,45 +21,52 @@ async function run()
 		//   script will be run, before the package is packaged and installed.
 		//
 		// So here we compile TypeScript to JavaScript.
-		case 'prepare':
-		{
+		case 'prepare': {
 			buildTypescript({ force: false });
 
 			break;
 		}
 
-		case 'typescript:build':
-		{
+		case 'typescript:build': {
 			installDeps();
 			buildTypescript({ force: true });
 
 			break;
 		}
 
-		case 'typescript:watch':
-		{
+		case 'typescript:watch': {
 			deleteLib();
 			executeCmd('tsc --watch');
 
 			break;
 		}
 
-		case 'lint':
-		{
+		case 'lint': {
 			lint();
 
 			break;
 		}
 
-		case 'release:check':
-		{
+		case 'format': {
+			format();
+
+			break;
+		}
+
+		case 'test': {
+			buildTypescript({ force: false });
+			test();
+
+			break;
+		}
+
+		case 'release:check': {
 			checkRelease();
 
 			break;
 		}
 
-		case 'release':
-		{
+		case 'release': {
 			checkRelease();
 			executeCmd(`git commit -am '${PKG.version}'`);
 			executeCmd(`git tag -a ${PKG.version} -m '${PKG.version}'`);
@@ -72,8 +77,7 @@ async function run()
 			break;
 		}
 
-		default:
-		{
+		default: {
 			logError('unknown task');
 
 			exitWithError();
@@ -81,10 +85,8 @@ async function run()
 	}
 }
 
-function deleteLib()
-{
-	if (!fs.existsSync('lib'))
-	{
+function deleteLib() {
+	if (!fs.existsSync('lib')) {
 		return;
 	}
 
@@ -93,10 +95,8 @@ function deleteLib()
 	fs.rmSync('lib', { recursive: true, force: true });
 }
 
-function buildTypescript({ force = false } = { force: false })
-{
-	if (!force && fs.existsSync('lib'))
-	{
+function buildTypescript({ force = false } = { force: false }) {
+	if (!force && fs.existsSync('lib')) {
 		return;
 	}
 
@@ -106,15 +106,33 @@ function buildTypescript({ force = false } = { force: false })
 	executeCmd('tsc');
 }
 
-function lint()
-{
+function lint() {
 	logInfo('lint()');
 
-	executeCmd('eslint -c .eslintrc.js --max-warnings 0 src .eslintrc.js npm-scripts.mjs');
+	executeCmd('prettier . --check');
+
+	// Ensure there are no rules that are unnecessary or conflict with Prettier
+	// rules.
+	executeCmd('eslint-config-prettier .eslintrc.js');
+
+	executeCmd(
+		'eslint -c .eslintrc.js --ignore-path .eslintignore --max-warnings 0 .',
+	);
 }
 
-function installDeps()
-{
+function format() {
+	logInfo('format()');
+
+	executeCmd('prettier . --write');
+}
+
+function test() {
+	logInfo('test()');
+
+	executeCmd(`jest --silent false --detectOpenHandles ${args}`);
+}
+
+function installDeps() {
 	logInfo('installDeps()');
 
 	// Install/update deps.
@@ -123,8 +141,7 @@ function installDeps()
 	executeCmd('npm install --package-lock-only --ignore-scripts');
 }
 
-function checkRelease()
-{
+function checkRelease() {
 	logInfo('checkRelease()');
 
 	installDeps();
@@ -132,49 +149,38 @@ function checkRelease()
 	lint();
 }
 
-function executeCmd(command, exitOnError = true)
-{
+function executeCmd(command, exitOnError = true) {
 	logInfo(`executeCmd(): ${command}`);
 
-	try
-	{
-		execSync(command, { stdio: [ 'ignore', process.stdout, process.stderr ] });
-	}
-	catch (error)
-	{
-		if (exitOnError)
-		{
+	try {
+		execSync(command, { stdio: ['ignore', process.stdout, process.stderr] });
+	} catch (error) {
+		if (exitOnError) {
 			logError(`executeCmd() failed, exiting: ${error}`);
 
 			exitWithError();
-		}
-		else
-		{
+		} else {
 			logInfo(`executeCmd() failed, ignoring: ${error}`);
 		}
 	}
 }
 
-function logInfo(message)
-{
+function logInfo(message) {
 	// eslint-disable-next-line no-console
-	console.log(`npm-scripts.mjs \x1b[36m[INFO] [${task}]\x1b\[0m`, message);
+	console.log(`npm-scripts.mjs \x1b[36m[INFO] [${task}]\x1b[0m`, message);
 }
 
 // eslint-disable-next-line no-unused-vars
-function logWarn(message)
-{
+function logWarn(message) {
 	// eslint-disable-next-line no-console
-	console.warn(`npm-scripts.mjs \x1b[33m[WARN] [${task}]\x1b\[0m`, message);
+	console.warn(`npm-scripts.mjs \x1b[33m[WARN] [${task}]\x1b[0m`, message);
 }
 
-function logError(message)
-{
+function logError(message) {
 	// eslint-disable-next-line no-console
-	console.error(`npm-scripts.mjs \x1b[31m[ERROR] [${task}]\x1b\[0m`, message);
+	console.error(`npm-scripts.mjs \x1b[31m[ERROR] [${task}]\x1b[0m`, message);
 }
 
-function exitWithError()
-{
+function exitWithError() {
 	process.exit(1);
 }
