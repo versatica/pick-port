@@ -1,5 +1,8 @@
 # pick-port
 
+[![][npm-shield-pick-port]][npm-pick-port]
+[![][github-actions-shield-pick-port]][github-actions-pick-port]
+
 Get an available TCP or UDP port for the given IP address.
 
 ```bash
@@ -47,10 +50,16 @@ Resolves with an available port or rejects with an error otherwise.
 
 The `reserveTimeout` option provides the application with the required time to bind the free port before it is given again on a future call to this library.
 
-## Author
+## Authors
 
 - José Luis Millán [[github](https://github.com/jmillan/)]
+- Iñaki Baz Castillo [[website](https://inakibaz.me)|[github](https://github.com/ibc/)]
 
 ## License
 
 [ISC](./LICENSE)
+
+[npm-shield-pick-port]: https://img.shields.io/npm/v/pick-port.svg
+[npm-pick-port]: https://npmjs.org/package/pick-port
+[github-actions-shield-pick-port]: https://github.com/versatica/pick-port/actions/workflows/pick-port.yaml/badge.svg
+[github-actions-pick-port]: https://github.com/versatica/pick-port/actions/workflows/pick-port.yaml
