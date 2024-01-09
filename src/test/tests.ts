@@ -1,13 +1,14 @@
 import * as os from 'node:os';
 import * as net from 'node:net';
 import * as matchers from 'jest-extended';
-import { pickPort } from '../';
+import { pickPort, Type } from '../';
 import { Logger } from '../Logger';
 
 // Add all jest-extended matchers.
 expect.extend(matchers);
 
 const logger = new Logger('tests');
+const allTypes: Type[] = ['tcp', 'udp'];
 
 type TestContext = {
 	bindableIps: string[];
@@ -16,19 +17,19 @@ type TestContext = {
 
 const ctx: TestContext = {
 	bindableIps: [],
-	nonBindableIps: ['8.8.8.8', 'fe80::1:12345'],
+	nonBindableIps: ['8.8.8.8', 'fe80::1:12345', 'WRONG IP'],
 };
 
 beforeAll(async () => {
-	const setIps: Set<string> = new Set();
+	const ips: Set<string> = new Set();
 
 	for (const iface of Object.values(os.networkInterfaces())) {
 		for (const { address } of iface ?? []) {
-			if (setIps.has(address)) {
+			if (ips.has(address)) {
 				continue;
 			}
 
-			setIps.add(address);
+			ips.add(address);
 
 			if (await isBindableIp(address)) {
 				ctx.bindableIps.push(address);
@@ -39,49 +40,75 @@ beforeAll(async () => {
 	logger.debug('beforeAll() | ctx.bindableIps:', ctx.bindableIps);
 });
 
-test('pick UDP port in default IP 0.0.0.0 succeeds', async () => {
-	await expect(
-		pickPort({ type: 'udp', reserveTimeout: 0 }),
-	).resolves.toBeNumber();
+test('pick port in default IP 0.0.0.0 succeeds', async () => {
+	for (const type of allTypes) {
+		await expect(pickPort({ type, reserveTimeout: 0 })).resolves.toBeNumber();
+	}
 }, 2000);
 
-test('pick TCP port in default IP 0.0.0.0 succeeds', async () => {
-	await expect(
-		pickPort({ type: 'tcp', reserveTimeout: 0 }),
-	).resolves.toBeNumber();
+test('pick port in bindable IPs succeeds', async () => {
+	for (const type of allTypes) {
+		for (const ip of ctx.bindableIps) {
+			await expect(
+				pickPort({ type, ip, reserveTimeout: 0 }),
+			).resolves.toBeNumber();
+		}
+	}
 }, 2000);
 
-test('pick UDP port in bindable IPs succeeds', async () => {
-	for (const ip of ctx.bindableIps) {
+test('pick port in non bindable IPs fails', async () => {
+	for (const type of allTypes) {
+		for (const ip of ctx.nonBindableIps) {
+			await expect(pickPort({ type, ip, reserveTimeout: 0 })).rejects.toThrow();
+		}
+	}
+}, 2000);
+
+test('pick port with minPort and maxPort IPs succeeds', async () => {
+	const ip = '127.0.0.1';
+	const minPort = 2001;
+	const maxPort = 2002;
+	const reserveTimeout = 1;
+
+	for (const type of allTypes) {
+		const port1 = await pickPort({
+			type,
+			ip,
+			minPort,
+			maxPort,
+			reserveTimeout,
+		});
+
+		const port2 = await pickPort({
+			type,
+			ip,
+			minPort,
+			maxPort,
+			reserveTimeout,
+		});
+
+		expect([port1, port2]).toEqual(expect.arrayContaining([minPort, maxPort]));
+
+		// No more ports available during 1 second so this should reject.
 		await expect(
-			pickPort({ type: 'udp', ip: ip, reserveTimeout: 0 }),
+			pickPort({ type, ip, minPort, maxPort, reserveTimeout }),
+		).rejects.toThrow();
+
+		// However it should work if a separate range is given.
+		await expect(
+			pickPort({ type, ip, minPort: 3001, maxPort: 3002, reserveTimeout }),
+		).resolves.toBeNumber();
+
+		// After 1 second, ports should be available again.
+		await new Promise<void>(resolve =>
+			setTimeout(resolve, reserveTimeout * 1000),
+		);
+
+		await expect(
+			pickPort({ type, ip, minPort, maxPort, reserveTimeout }),
 		).resolves.toBeNumber();
 	}
-}, 2000);
-
-test('pick TCP port in bindable IPs succeeds', async () => {
-	for (const ip of ctx.bindableIps) {
-		await expect(
-			pickPort({ type: 'tcp', ip: ip, reserveTimeout: 0 }),
-		).resolves.toBeNumber();
-	}
-}, 2000);
-
-test('pick UDP port in non bindable IPs fails', async () => {
-	for (const ip of ctx.nonBindableIps) {
-		await expect(
-			pickPort({ type: 'udp', ip: ip, reserveTimeout: 0 }),
-		).rejects.toThrow();
-	}
-}, 2000);
-
-test('pick TCP port in non bindable IPs fails', async () => {
-	for (const ip of ctx.nonBindableIps) {
-		await expect(
-			pickPort({ type: 'tcp', ip: ip, reserveTimeout: 0 }),
-		).rejects.toThrow();
-	}
-}, 2000);
+}, 4000);
 
 /**
  * Not all reported IPs are bindable. Verify it by binding on them in a random

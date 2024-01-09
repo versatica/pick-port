@@ -1,9 +1,6 @@
 import * as net from 'node:net';
 
-export async function reserve(
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	{ ip, port, family }: { ip: string; port: number; family: 4 | 6 },
-): Promise<void> {
+export async function reserve(ip: string, port: number): Promise<void> {
 	const server = net.createServer();
 
 	await new Promise<void>((resolve, reject) => {
