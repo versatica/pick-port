@@ -15,8 +15,8 @@ export async function reserve({
 		server.unref();
 		server.on('error', reject);
 
-		server.bind({ port, address: ip, exclusive: true }, () =>
-			server.close(() => resolve()),
-		);
+		server.bind({ address: ip, port, exclusive: true }, () => {
+			server.close(() => resolve());
+		});
 	});
 }

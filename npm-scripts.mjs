@@ -5,11 +5,14 @@ import { execSync } from 'node:child_process';
 const PKG = JSON.parse(fs.readFileSync('./package.json').toString());
 const RELEASE_BRANCH = 'master';
 
-const task = process.argv.slice(2).join(' ');
+const task = process.argv[2];
+const args = process.argv.slice(3).join(' ');
 
 run();
 
 async function run() {
+	logInfo(args ? `[args:"${args}"]` : '');
+
 	switch (task) {
 		// As per NPM documentation (https://docs.npmjs.com/cli/v9/using-npm/scripts)
 		// `prepare` script:
@@ -36,7 +39,7 @@ async function run() {
 
 		case 'typescript:watch': {
 			deleteLib();
-			executeCmd('tsc --watch');
+			executeCmd(`tsc --watch ${args}`);
 
 			break;
 		}
@@ -147,6 +150,7 @@ function checkRelease() {
 	installDeps();
 	buildTypescript({ force: true });
 	lint();
+	test();
 }
 
 function executeCmd(command, exitOnError = true) {

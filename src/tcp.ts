@@ -10,8 +10,8 @@ export async function reserve(
 		server.unref();
 		server.on('error', reject);
 
-		server.listen({ port, host: ip, exclusive: true }, () =>
-			server.close(() => resolve()),
-		);
+		server.listen({ host: ip, port, exclusive: true }, () => {
+			server.close(() => resolve());
+		});
 	});
 }
