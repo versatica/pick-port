@@ -52,3 +52,5 @@ jobs:
 
       - name: npm run test
         run: npm run test
+        env:
+          DEBUG: 'pick-port:tests*'
