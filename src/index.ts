@@ -1,11 +1,12 @@
 import * as net from 'node:net';
+import * as crypto from 'node:crypto';
 import { Logger } from './Logger';
 import { reserve as reserveTcp } from './tcp';
 import { reserve as reserveUdp } from './udp';
 
 const logger = new Logger();
 
-export type Type = 'udp' | 'tcp';
+export type Type = 'tcp' | 'udp';
 
 // Store picked ports for the specified reserveTimeout time.
 // This Set stores strings/hashes with the form "type:ip:port".
@@ -60,12 +61,9 @@ export async function pickPort({
 	}
 
 	// Take a random port in the range.
-	// NOTE: Use last reserved port as initial value since it will be incremented
-	// at the end of the loop below.
-	let port =
-		lastReservedPort === undefined
-			? Math.floor(Math.random() * (maxPort + 1 - minPort)) + minPort
-			: lastReservedPort;
+	// NOTE: Use last reserved port (if any) as initial value since it will be
+	// incremented at the end of the loop below.
+	let port = lastReservedPort ?? crypto.randomInt(minPort, maxPort + 1);
 
 	let retries = maxPort - minPort + 1;
 
@@ -75,10 +73,15 @@ export async function pickPort({
 			port = minPort;
 		}
 
+		const hash = generateHash(type, ip, port);
+
 		// If current port is reserved, try next one.
-		if (isReserved(type, ip, port)) {
+		if (isReserved(hash)) {
 			continue;
 		}
+
+		// Optimistically reserve the port.
+		reserve(hash);
 
 		try {
 			switch (type) {
@@ -95,16 +98,19 @@ export async function pickPort({
 				}
 			}
 
-			reserve(type, ip, port, reserveTimeout);
-
-			lastReservedPort = port;
-
 			logger.debug(
 				`pickPort() | got available port [type:${type}, ip:${ip}, port:${port}]`,
 			);
 
+			lastReservedPort = port;
+
+			// Unreserve the reserved port after given timeout.
+			setTimeout(() => unreserve(hash), reserveTimeout * 1000);
+
 			return port;
 		} catch (error) {
+			unreserve(hash);
+
 			if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
 				logger.debug(
 					`pickPort() | port in use [type:${type}, ip:${ip}, port:${port}]`,
@@ -128,24 +134,26 @@ export async function pickPort({
 	throw new Error('no available port in the given port range');
 }
 
-function reserve(
-	type: Type,
-	ip: string,
-	port: number,
-	reserveTimeout: number,
-): void {
-	const hash = generateHash(type, ip, port);
-
-	reserved.add(hash);
-	setTimeout(() => reserved.delete(hash), reserveTimeout * 1000);
-}
-
-function isReserved(type: Type, ip: string, port: number): boolean {
-	const hash = generateHash(type, ip, port);
-
-	return reserved.has(hash);
-}
-
 function generateHash(type: Type, ip: string, port: number): string {
 	return `${type}:${ip}:${port}`;
+}
+
+function reserve(hash: string): void {
+	if (isReserved(hash)) {
+		throw new Error(`reserve() | hash '${hash}' is already reserved`);
+	}
+
+	reserved.add(hash);
+}
+
+function unreserve(hash: string): void {
+	if (!isReserved(hash)) {
+		throw new Error(`unreserve() | hash '${hash}' is not reserved`);
+	}
+
+	reserved.delete(hash);
+}
+
+function isReserved(hash: string): boolean {
+	return reserved.has(hash);
 }

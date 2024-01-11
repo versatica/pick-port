@@ -68,7 +68,7 @@ test('pick port with minPort and maxPort IPs succeeds', async () => {
 	const ip = '127.0.0.1';
 	const minPort = 2001;
 	const maxPort = 2002;
-	const reserveTimeout = 1;
+	const reserveTimeout = 2;
 
 	for (const type of allTypes) {
 		const port1 = await pickPort({
@@ -89,7 +89,8 @@ test('pick port with minPort and maxPort IPs succeeds', async () => {
 
 		expect([port1, port2]).toEqual(expect.arrayContaining([minPort, maxPort]));
 
-		// No more ports available during 1 second so this should reject.
+		// No more ports available during reserve time second so this should
+		// reject.
 		await expect(
 			pickPort({ type, ip, minPort, maxPort, reserveTimeout }),
 		).rejects.toThrow();
@@ -99,7 +100,7 @@ test('pick port with minPort and maxPort IPs succeeds', async () => {
 			pickPort({ type, ip, minPort: 3001, maxPort: 3002, reserveTimeout }),
 		).resolves.toBeNumber();
 
-		// After 1 second, ports should be available again.
+		// After reserve time, ports should be available again.
 		await new Promise<void>(resolve =>
 			setTimeout(resolve, reserveTimeout * 1000),
 		);
@@ -108,7 +109,35 @@ test('pick port with minPort and maxPort IPs succeeds', async () => {
 			pickPort({ type, ip, minPort, maxPort, reserveTimeout }),
 		).resolves.toBeNumber();
 	}
-}, 4000);
+}, 6000);
+
+test('pick 2 ports at the same time succeeds', async () => {
+	for (const type of allTypes) {
+		const ip = '127.0.0.1';
+		const minPort = 3001;
+		const maxPort = 3002;
+		const reserveTimeout = 2;
+
+		await expect(
+			Promise.all([
+				pickPort({
+					type,
+					ip,
+					minPort,
+					maxPort,
+					reserveTimeout,
+				}),
+				pickPort({
+					type,
+					ip,
+					minPort,
+					maxPort,
+					reserveTimeout,
+				}),
+			]),
+		).resolves.toEqual([expect.toBeNumber(), expect.toBeNumber()]);
+	}
+}, 2000);
 
 /**
  * Not all reported IPs are bindable. Verify it by binding on them in a random
