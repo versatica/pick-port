@@ -9,7 +9,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/versatica/pick-port.git"
+		"url": "git+https://github.com/versatica/pick-port.git"
 	},
 	"bugs": {
 		"url": "https://github.com/versatica/pick-port/issues"
