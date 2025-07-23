@@ -3,5 +3,5 @@
 /lib
 
 ## Others.
-/.cache
 /coverage
+/.cache

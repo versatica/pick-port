@@ -6,20 +6,27 @@ const PKG = JSON.parse(fs.readFileSync('./package.json').toString());
 const RELEASE_BRANCH = 'master';
 
 // Paths for ESLint to check. Converted to string for convenience.
-const ESLINT_PATHS = ['src', 'npm-scripts.mjs'].join(' ');
+const ESLINT_PATHS = [
+	'eslint.config.mjs',
+	'jest.config.mjs',
+	'npm-scripts.mjs',
+	'src',
+].join(' ');
+
 // Paths for ESLint to ignore. Converted to string argument for convenience.
 const ESLINT_IGNORE_PATTERN_ARGS = []
 	.map(entry => `--ignore-pattern ${entry}`)
 	.join(' ');
+
 // Paths for Prettier to check/write. Converted to string for convenience.
-// NOTE: Prettier ignores paths in .gitignore so we don't need to care about
-// node/src/fbs.
 const PRETTIER_PATHS = [
 	'README.md',
-	'src',
+	'eslint.config.mjs',
+	'jest.config.mjs',
 	'npm-scripts.mjs',
 	'package.json',
 	'tsconfig.json',
+	'src',
 ].join(' ');
 
 const task = process.argv[2];
@@ -57,8 +64,7 @@ async function run() {
 		}
 
 		case 'typescript:watch': {
-			deleteLib();
-			executeCmd(`tsc --watch ${taskArgs}`);
+			watchTypescript();
 
 			break;
 		}
@@ -76,8 +82,14 @@ async function run() {
 		}
 
 		case 'test': {
-			buildTypescript({ force: false });
 			test();
+
+			break;
+		}
+
+		case 'coverage': {
+			executeCmd(`jest --coverage ${taskArgs}`);
+			executeCmd('open-cli coverage/lcov-report/index.html');
 
 			break;
 		}
@@ -117,7 +129,7 @@ function deleteLib() {
 	fs.rmSync('lib', { recursive: true, force: true });
 }
 
-function buildTypescript({ force = false } = { force: false }) {
+function buildTypescript({ force }) {
 	if (!force && fs.existsSync('lib')) {
 		return;
 	}
@@ -125,7 +137,17 @@ function buildTypescript({ force = false } = { force: false }) {
 	logInfo('buildTypescript()');
 
 	deleteLib();
-	executeCmd('tsc');
+
+	// Generate .js CommonJS code and .d.ts TypeScript declaration files in lib/.
+	executeCmd(`tsc ${taskArgs}`);
+}
+
+function watchTypescript() {
+	logInfo('watchTypescript()');
+
+	deleteLib();
+
+	executeCmd(`tsc --watch ${taskArgs}`);
 }
 
 function lint() {
@@ -133,10 +155,10 @@ function lint() {
 
 	// Ensure there are no rules that are unnecessary or conflict with Prettier
 	// rules.
-	executeCmd('eslint-config-prettier .eslintrc.js');
+	executeCmd('eslint-config-prettier eslint.config.mjs');
 
 	executeCmd(
-		`eslint -c .eslintrc.js --ext=ts,js,mjs --max-warnings 0 ${ESLINT_IGNORE_PATTERN_ARGS} ${ESLINT_PATHS}`,
+		`eslint -c eslint.config.mjs --max-warnings 0 ${ESLINT_IGNORE_PATTERN_ARGS} ${ESLINT_PATHS}`,
 	);
 
 	executeCmd(`prettier --check ${PRETTIER_PATHS}`);
