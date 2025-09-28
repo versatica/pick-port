@@ -16,6 +16,7 @@ const config = tsEslint.config(
 		},
 	},
 	eslint.configs.recommended,
+	prettierRecommendedEslint,
 	{
 		rules: {
 			'constructor-super': 2,
@@ -175,7 +176,6 @@ const config = tsEslint.config(
 			'@typescript-eslint/no-unnecessary-type-assertion': 0,
 		},
 	},
-	prettierRecommendedEslint,
 );
 
 export default config;
