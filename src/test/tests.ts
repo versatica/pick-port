@@ -1,11 +1,7 @@
 import * as os from 'node:os';
 import * as net from 'node:net';
-import * as matchers from 'jest-extended';
 import { pickPort, Type } from '../';
 import { Logger } from '../Logger';
-
-// Add all jest-extended matchers.
-expect.extend(matchers);
 
 const logger = new Logger('tests');
 const allTypes: Type[] = ['tcp', 'udp'];
@@ -42,16 +38,18 @@ beforeAll(async () => {
 
 test('pick port in default IP 0.0.0.0 succeeds', async () => {
 	for (const type of allTypes) {
-		await expect(pickPort({ type, reserveTimeout: 0 })).resolves.toBeNumber();
+		await expect(pickPort({ type, reserveTimeout: 0 })).resolves.toEqual(
+			expect.any(Number),
+		);
 	}
 }, 2000);
 
 test('pick port in bindable IPs succeeds', async () => {
 	for (const type of allTypes) {
 		for (const ip of ctx.bindableIps) {
-			await expect(
-				pickPort({ type, ip, reserveTimeout: 0 }),
-			).resolves.toBeNumber();
+			await expect(pickPort({ type, ip, reserveTimeout: 0 })).resolves.toEqual(
+				expect.any(Number),
+			);
 		}
 	}
 }, 2000);
@@ -98,7 +96,7 @@ test('pick port with minPort and maxPort IPs succeeds', async () => {
 		// However it should work if a separate range is given.
 		await expect(
 			pickPort({ type, ip, minPort: 3001, maxPort: 3002, reserveTimeout }),
-		).resolves.toBeNumber();
+		).resolves.toEqual(expect.any(Number));
 
 		// After reserve time, ports should be available again.
 		await new Promise<void>(resolve =>
@@ -107,7 +105,7 @@ test('pick port with minPort and maxPort IPs succeeds', async () => {
 
 		await expect(
 			pickPort({ type, ip, minPort, maxPort, reserveTimeout }),
-		).resolves.toBeNumber();
+		).resolves.toEqual(expect.any(Number));
 	}
 }, 4000);
 
