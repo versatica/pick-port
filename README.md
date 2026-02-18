@@ -61,5 +61,5 @@ The `reserveTimeout` option provides the application with the required time to b
 
 [npm-shield-pick-port]: https://img.shields.io/npm/v/pick-port.svg
 [npm-pick-port]: https://npmjs.org/package/pick-port
-[github-actions-shield-pick-port]: https://github.com/versatica/pick-port/actions/workflows/pick-port.yaml/badge.svg
-[github-actions-pick-port]: https://github.com/versatica/pick-port/actions/workflows/pick-port.yaml
+[github-actions-shield-pick-port]: https://github.com/versatica/pick-port/actions/workflows/pick-port.yaml/badge.svg?branch=master
+[github-actions-pick-port]: https://github.com/versatica/pick-port/actions/workflows/pick-port.yaml?query=branch%3Amaster
